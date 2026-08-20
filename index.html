@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#F2F2F7">
-<title>Бар · Учёт продаж</title>
+<title>Teplo Drinks · Продажи</title>
 <style>
 /* ============================================================
    НАСТРОЙКА: вставьте ссылку на ваш Google Apps Script ниже
@@ -79,6 +79,7 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
   font-family:-apple-system,"SF Pro Display",BlinkMacSystemFont,sans-serif;
 }
 .status{
+  cursor:pointer;
   display:inline-flex;align-items:center;gap:6px;
   font-size:13px;font-weight:590;color:var(--label-2);
   background:var(--fill);border-radius:100px;padding:6px 11px;
@@ -116,20 +117,6 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
   text-transform:uppercase;letter-spacing:.04em;
   margin:26px 6px 9px;
 }
-.seg{
-  display:grid;grid-template-columns:1fr 1fr;gap:2px;
-  background:var(--fill);border-radius:11px;padding:2px;position:relative;
-}
-.seg button{
-  padding:9px 8px;border-radius:9px;font-size:15px;font-weight:590;
-  color:var(--label);letter-spacing:-.01em;
-  transition:background .22s cubic-bezier(.32,.72,0,1), box-shadow .22s;
-}
-.seg button[aria-pressed="true"]{
-  background:var(--card);box-shadow:0 3px 8px rgba(0,0,0,.10),0 1px 1px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark){.seg button[aria-pressed="true"]{background:#636366;}}
-
 /* ---------- Сетка коктейлей ---------- */
 .grid{
   display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:10px;
@@ -234,16 +221,65 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
 .total-line b{font-size:28px;font-weight:700;letter-spacing:-.032em;font-variant-numeric:tabular-nums;
   font-family:-apple-system,"SF Pro Display",BlinkMacSystemFont,sans-serif;}
 
-.pay-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.pay-btns button{
-  height:56px;border-radius:15px;color:#fff;
-  font-size:17px;font-weight:640;letter-spacing:-.02em;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  transition:transform .12s cubic-bezier(.32,.72,0,1),filter .12s;
+.pay-seg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.pay-seg button{
+  height:60px;border-radius:15px;background:var(--card);
+  font-size:16px;font-weight:610;letter-spacing:-.018em;color:var(--label);
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  border:2px solid transparent;
+  transition:border-color .18s,background .18s,transform .12s cubic-bezier(.32,.72,0,1);
 }
-.pay-btns button:active{transform:scale(.965);filter:brightness(.92);}
-.pay-btns .cash{background:var(--green);}
-.pay-btns .card{background:var(--blue);}
+.pay-seg button:active{transform:scale(.97);}
+.pay-seg button .mark{
+  width:20px;height:20px;border-radius:50%;border:2px solid var(--label-3);flex:none;
+  display:flex;align-items:center;justify-content:center;transition:border-color .18s,background .18s;
+}
+.pay-seg button .mark svg{width:11px;height:11px;opacity:0;transition:opacity .18s;}
+.pay-seg button[aria-pressed="true"] .mark svg{opacity:1;}
+.pay-seg button[data-pay="Наличные"][aria-pressed="true"]{border-color:var(--green);}
+.pay-seg button[data-pay="Наличные"][aria-pressed="true"] .mark{background:var(--green);border-color:var(--green);}
+.pay-seg button[data-pay="Карта"][aria-pressed="true"]{border-color:var(--blue);}
+.pay-seg button[data-pay="Карта"][aria-pressed="true"] .mark{background:var(--blue);border-color:var(--blue);}
+
+.confirm{
+  width:100%;height:58px;border-radius:15px;background:var(--label);color:var(--bg);
+  font-size:18px;font-weight:680;letter-spacing:-.022em;
+  font-variant-numeric:tabular-nums;
+  transition:transform .12s cubic-bezier(.32,.72,0,1),opacity .18s;
+}
+.confirm:active{transform:scale(.97);}
+.confirm:disabled{opacity:.3;transform:none;}
+
+/* ---------- Экран подтверждения ---------- */
+.done{
+  position:fixed;inset:0;z-index:120;
+  background:rgba(0,0,0,.62);
+  -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .24s ease;
+}
+.done.on{opacity:1;pointer-events:auto;}
+.done-card{text-align:center;color:#fff;padding:0 32px;transform:scale(.9);transition:transform .42s cubic-bezier(.34,1.4,.64,1);}
+.done.on .done-card{transform:scale(1);}
+.done svg{width:96px;height:96px;display:block;margin:0 auto 20px;}
+.done .ring{fill:none;stroke:#34C759;stroke-width:5;stroke-linecap:round;
+  stroke-dasharray:283;stroke-dashoffset:283;transform:rotate(-90deg);transform-origin:50% 50%;}
+.done .tick{fill:none;stroke:#34C759;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:44;stroke-dashoffset:44;}
+.done.on .ring{animation:ring .55s cubic-bezier(.32,.72,0,1) forwards;}
+.done.on .tick{animation:tick .3s .34s cubic-bezier(.32,.72,0,1) forwards;}
+@keyframes ring{to{stroke-dashoffset:0}}
+@keyframes tick{to{stroke-dashoffset:0}}
+.done .d-sum{font-size:40px;font-weight:700;letter-spacing:-.036em;font-variant-numeric:tabular-nums;
+  font-family:-apple-system,"SF Pro Display",BlinkMacSystemFont,sans-serif;
+  opacity:0;animation:none;}
+.done.on .d-sum{animation:rise .38s .42s cubic-bezier(.32,.72,0,1) forwards;}
+.done .d-sub{font-size:16px;font-weight:530;color:rgba(255,255,255,.72);margin-top:7px;letter-spacing:-.016em;opacity:0;}
+.done.on .d-sub{animation:rise .38s .5s cubic-bezier(.32,.72,0,1) forwards;}
+.done .d-note{font-size:13.5px;font-weight:590;color:#FF9F0A;margin-top:14px;letter-spacing:-.01em;opacity:0;}
+.done.on .d-note{animation:rise .38s .58s cubic-bezier(.32,.72,0,1) forwards;}
+.done .d-note[hidden]{display:none;}
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
 .cancel{
   width:100%;height:50px;margin-top:8px;border-radius:15px;
   background:var(--fill);font-size:17px;font-weight:590;letter-spacing:-.02em;color:var(--label);
@@ -284,6 +320,7 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
   font-size:15px;font-weight:590;letter-spacing:-.016em;color:var(--blue);
 }
 .foot button.danger{color:var(--red);}
+.foot button[hidden]{display:none;}
 .foot button .cnt{
   display:inline-block;margin-left:6px;min-width:20px;padding:0 6px;height:19px;line-height:19px;
   border-radius:10px;background:var(--orange);color:#fff;font-size:12px;font-weight:680;
@@ -297,7 +334,7 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
 <body>
 
 <div class="topbar">
-  <h1>Бар</h1>
+  <h1>Teplo Drinks</h1>
   <div class="status" id="status"><span class="dot"></span><span id="statusTxt">Готово</span></div>
 </div>
 
@@ -308,12 +345,6 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
     <div class="tot"><div class="k">Продано</div><div class="v" id="tQty">0<small> шт</small></div></div>
     <div class="tot cash"><div class="k">Наличные</div><div class="v" id="tCash">0<small> сум</small></div></div>
     <div class="tot card"><div class="k">Карта</div><div class="v" id="tCard">0<small> сум</small></div></div>
-  </div>
-
-  <div class="section-title">Смена</div>
-  <div class="seg" id="seg">
-    <button data-b="Бармен 1" aria-pressed="true">Бармен 1</button>
-    <button data-b="Бармен 2" aria-pressed="false">Бармен 2</button>
   </div>
 
   <div class="section-title">Меню</div>
@@ -329,7 +360,7 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
   <div class="list" id="list"><div class="empty">Продаж пока нет</div></div>
 
   <div class="foot">
-    <button id="btnSync">Синхронизировать<span class="cnt" id="syncCnt" hidden>0</span></button>
+    <button id="btnSync" hidden>Отправить<span class="cnt" id="syncCnt" hidden>0</span></button>
     <button class="danger" id="btnReset">Закрыть смену</button>
   </div>
 </div>
@@ -353,11 +384,30 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
     </div>
   </div>
   <div class="total-line"><span>К оплате</span><b id="shTotal">0</b></div>
-  <div class="pay-btns">
-    <button class="cash" id="payCash">Наличные</button>
-    <button class="card" id="payCard">Карта</button>
+  <div class="pay-seg" id="paySeg">
+    <button data-pay="Наличные" aria-pressed="false">
+      <span class="mark"><svg viewBox="0 0 12 12"><path d="M1.5 6.4 L4.4 9.2 L10.5 2.8" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      Наличные
+    </button>
+    <button data-pay="Карта" aria-pressed="false">
+      <span class="mark"><svg viewBox="0 0 12 12"><path d="M1.5 6.4 L4.4 9.2 L10.5 2.8" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      Карта
+    </button>
   </div>
+  <button class="confirm" id="confirm" disabled>Выберите способ оплаты</button>
   <button class="cancel" id="closeSheet">Отмена</button>
+</div>
+
+<div class="done" id="done">
+  <div class="done-card">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <circle class="ring" cx="50" cy="50" r="45"/>
+      <path class="tick" d="M30 51 L44 65 L71 36"/>
+    </svg>
+    <div class="d-sum" id="dSum">0</div>
+    <div class="d-sub" id="dSub">—</div>
+    <div class="d-note" id="dNote" hidden>Не подтверждено отчётом</div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -372,7 +422,6 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
      2) сохранённая ранее ссылка на этом устройстве
      3) константа ниже (нужна, только если репозиторий приватный)      */
 let SCRIPT_URL = "";
-const BARTENDERS = ["Бармен 1", "Бармен 2"]; // замените на реальные имена
 
 /* ==========================================================
    2. МЕНЮ
@@ -497,10 +546,9 @@ function art(d, w){
    4. Состояние
    ========================================================== */
 const fmt = n => n.toLocaleString("ru-RU").replace(/\u00A0/g," ");
-let bartender = BARTENDERS[0];
-let sales = [];           // {id, ts, bartender, drink, qty, price, sum, pay, void, synced}
+let sales = [];           // {id, ts, drink, qty, price, sum, pay, void, synced}
 let queue = [];           // ожидают отправки
-let current = null, qty = 1, sending = false, backoff = 0;
+let current = null, qty = 1, payMode = null, sending = false, backoff = 0, unconfirmedSeen = false;
 
 /* --- подключение отчёта: hash → память устройства → константа --- */
 function resolveUrl(){
@@ -513,6 +561,8 @@ function resolveUrl(){
   }catch(e){}
   if(u) SCRIPT_URL = u;
 }
+
+
 function connectUrl(){
   const u = prompt("Вставьте ссылку веб-приложения Apps Script (заканчивается на /exec):", SCRIPT_URL||"https://script.google.com/macros/s/.../exec");
   if(!u) return;
@@ -523,14 +573,19 @@ function connectUrl(){
   SCRIPT_URL = v;
   try{ localStorage.setItem("bar_url", v); }catch(e){}
   $("#banner").hidden = true;
-  toast("Отчёт подключён"); backoff = 0; flush();
+  backoff = 0;
+  toast("Проверяю связь…");
+  ping().then(ok=>{
+    toast(ok ? "Отчёт подключён" : "Адрес принят, но отчёт не отвечает — проверьте доступ «Все»");
+    flush();
+  });
 }
 
 /* --- необязательное локальное сохранение (не мешает работе, если недоступно) --- */
 const store = {
-  save(){ try{ localStorage.setItem("bar_v1", JSON.stringify({sales,queue,bartender})); }catch(e){} },
+  save(){ try{ localStorage.setItem("bar_v1", JSON.stringify({sales,queue})); }catch(e){} },
   load(){ try{ const d=JSON.parse(localStorage.getItem("bar_v1")||"null");
-    if(d){ sales=d.sales||[]; queue=d.queue||[]; bartender=d.bartender||BARTENDERS[0]; } }catch(e){} }
+    if(d){ sales=d.sales||[]; queue=d.queue||[]; } }catch(e){} }
 };
 
 /* ==========================================================
@@ -552,13 +607,7 @@ function renderMenu(){
   });
 }
 
-function renderSeg(){
-  const seg = $("#seg");
-  seg.innerHTML = BARTENDERS.map(b=>`<button data-b="${b}" aria-pressed="${b===bartender}">${b}</button>`).join("");
-  seg.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
-    bartender = b.dataset.b; renderSeg(); store.save(); haptic();
-  }));
-}
+
 
 function renderTotals(){
   const live = sales.filter(s=>!s.void);
@@ -585,7 +634,7 @@ function renderList(){
       <span class="pay ${s.pay==="Наличные"?"cash":"card"}"></span>
       <div class="txt">
         <div class="t1">${s.drink} × ${s.qty}</div>
-        <div class="t2">${s.time} · ${s.bartender} · ${s.pay}${s.synced?"":" · ожидает"}</div>
+        <div class="t2">${s.time} · ${s.pay}${s.synced?(s.unconfirmed?" · без подтверждения":""):" · ожидает"}</div>
       </div>
       <div class="sum">${fmt(s.sum)}</div>
       ${s.void?"":`<button class="undo" data-void="${s.id}">Отменить</button>`}
@@ -599,7 +648,8 @@ function render(){ renderTotals(); renderList(); store.save(); }
    6. Нижний лист
    ========================================================== */
 function openSheet(id){
-  current = MENU.find(d=>d.id===id); qty = 1;
+  current = MENU.find(d=>d.id===id); qty = 1; payMode = null;
+  document.querySelectorAll("#paySeg button").forEach(b=>b.setAttribute("aria-pressed","false"));
   $("#shArt").innerHTML = art(current);
   $("#shName").textContent = current.name;
   $("#shPrice").textContent = fmt(current.price)+" сум за порцию";
@@ -608,14 +658,37 @@ function openSheet(id){
   haptic();
 }
 function closeSheet(){ $("#scrim").classList.remove("on"); $("#sheet").classList.remove("on"); }
-function updSheet(){ $("#qty").textContent = qty; $("#shTotal").textContent = fmt(current.price*qty); }
+function updSheet(){
+  $("#qty").textContent = qty;
+  $("#shTotal").textContent = fmt(current.price*qty);
+  const c = $("#confirm");
+  c.disabled = !payMode;
+  c.textContent = payMode ? `Оплатить · ${fmt(current.price*qty)}` : "Выберите способ оплаты";
+}
 
 $("#plus").addEventListener("click",()=>{ if(qty<50){qty++;updSheet();haptic();} });
 $("#minus").addEventListener("click",()=>{ if(qty>1){qty--;updSheet();haptic();} });
 $("#closeSheet").addEventListener("click",closeSheet);
 $("#scrim").addEventListener("click",closeSheet);
-$("#payCash").addEventListener("click",()=>commit("Наличные"));
-$("#payCard").addEventListener("click",()=>commit("Карта"));
+document.querySelectorAll("#paySeg button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    payMode = b.dataset.pay;
+    document.querySelectorAll("#paySeg button").forEach(x=>x.setAttribute("aria-pressed", String(x===b)));
+    updSheet(); haptic();
+  });
+});
+$("#confirm").addEventListener("click",()=>{ if(payMode) commit(payMode); });
+
+function showDone(s){
+  $("#dSum").textContent = fmt(s.sum) + " сум";
+  $("#dSub").textContent = `${s.drink} × ${s.qty} · ${s.pay}`;
+  $("#dNote").hidden = true;
+  const el = $("#done");
+  el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
+  clearTimeout(el._h);
+  el._h = setTimeout(()=>el.classList.remove("on"), 2000);
+  el.onclick = ()=>{ clearTimeout(el._h); el.classList.remove("on"); };
+}
 
 /* ==========================================================
    7. Продажа / отмена
@@ -636,13 +709,12 @@ function commit(pay){
   const s = {
     id: t.iso.replace(/\D/g,"")+"-"+Math.random().toString(36).slice(2,7),
     date:t.date, time:t.time, iso:t.iso,
-    bartender, drink:current.name, qty,
+    drink:current.name, qty,
     price:current.price, sum:current.price*qty,
     pay, type:"Продажа", void:false, synced:false
   };
   sales.unshift(s); queue.push(s);
-  closeSheet(); render(); flush();
-  toast(`${s.drink} × ${s.qty} · ${fmt(s.sum)}`);
+  closeSheet(); showDone(s); render(); flush();
   haptic(true);
 }
 
@@ -664,12 +736,14 @@ function setStatus(cls, txt){
   const el = $("#status"); el.className = "status"+(cls?" "+cls:""); $("#statusTxt").textContent = txt;
   const c = $("#syncCnt");
   if(c){ c.textContent = queue.length; c.hidden = !queue.length; }
+  const b = $("#btnSync");
+  if(b) b.hidden = !(queue.length || !SCRIPT_URL);
 }
 
 /* Отправка одной записи. Никогда не блокирует интерфейс. */
 function send(item){
   return new Promise(resolve=>{
-    if(!SCRIPT_URL) return resolve(false);
+    if(!SCRIPT_URL) return resolve("failed");
     const cb  = "cb"+Math.random().toString(36).slice(2,9);
     const url = SCRIPT_URL + (SCRIPT_URL.indexOf("?")>-1?"&":"?")
               + "callback=" + cb + "&d=" + encodeURIComponent(JSON.stringify(item));
@@ -680,11 +754,11 @@ function send(item){
       clearTimeout(timer);
       try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
       if(tag.parentNode) tag.parentNode.removeChild(tag);
-      resolve(!!ok);
+      resolve(ok);
     };
-    window[cb] = r => finish(r && r.ok);
-    tag.onerror = () => finish(beacon(item));        // канал закрыт → пробуем маяк
-    const timer = setTimeout(()=>finish(beacon(item)), 9000);
+    window[cb] = r => finish((r && r.ok) ? "confirmed" : "failed");
+    tag.onerror = () => finish(beacon(item) ? "unconfirmed" : "failed");
+    const timer = setTimeout(()=>finish(beacon(item) ? "unconfirmed" : "failed"), 9000);
     tag.src = url;
     document.head.appendChild(tag);
   });
@@ -699,6 +773,27 @@ function beacon(item){
     }
   }catch(e){}
   return false;
+}
+
+/* Реальная проверка связи с отчётом */
+function ping(){
+  return new Promise(resolve=>{
+    if(!SCRIPT_URL) return resolve(false);
+    const cb = "pg"+Math.random().toString(36).slice(2,9);
+    const tag = document.createElement("script");
+    let done = false;
+    const fin = v => {
+      if(done) return; done = true; clearTimeout(tm);
+      try{ delete window[cb]; }catch(e){ window[cb] = undefined; }
+      if(tag.parentNode) tag.parentNode.removeChild(tag);
+      resolve(v);
+    };
+    window[cb] = r => fin(!!(r && r.ok));
+    tag.onerror = () => fin(false);
+    const tm = setTimeout(()=>fin(false), 9000);
+    tag.src = SCRIPT_URL + (SCRIPT_URL.indexOf("?")>-1?"&":"?") + "callback=" + cb;
+    document.head.appendChild(tag);
+  });
 }
 
 let retryTimer = null;
@@ -719,15 +814,16 @@ async function flush(){
     while(queue.length){
       setStatus("pending", `Отправка · ${queue.length}`);
       const item = queue[0];
-      const ok = await send(item);
-      if(!ok){ scheduleRetry(); setStatus("off", `Повтор · ${queue.length}`); break; }
+      const res = await send(item);
+      if(res === "failed"){ scheduleRetry(); setStatus("off", `Повтор · ${queue.length}`); break; }
       backoff = 0;
       queue.shift();
       const s = sales.find(x=>x.id===item.id);
-      if(s) s.synced = true;
+      if(s){ s.synced = true; s.unconfirmed = (res === "unconfirmed"); }
+      if(res === "unconfirmed") unconfirmedSeen = true;
       render();
     }
-    if(!queue.length){ backoff = 0; setStatus("","Синхронизировано"); }
+    if(!queue.length){ backoff = 0; setStatus("", unconfirmedSeen ? "Без подтверждения" : "Синхронизировано"); }
   }finally{
     sending = false;
   }
@@ -773,8 +869,15 @@ $("#btnReset").addEventListener("click",()=>{
 
 window.addEventListener("beforeunload", e=>{ if(queue.length){ e.preventDefault(); e.returnValue=""; } });
 
-resolveUrl(); store.load(); renderSeg(); renderMenu(); render();
+resolveUrl(); store.load(); renderMenu(); render();
 $("#btnConnect").addEventListener("click", connectUrl);
+$("#status").addEventListener("click", async ()=>{
+  if(!SCRIPT_URL){ connectUrl(); return; }
+  toast("Проверяю связь…");
+  const ok = await ping();
+  if(ok){ unconfirmedSeen = false; toast("Отчёт отвечает"); backoff = 0; flush(); }
+  else   { toast("Отчёт не отвечает — проверьте доступ «Все»"); }
+});
 $("#banner").hidden = !!SCRIPT_URL;
 setStatus(SCRIPT_URL?"":"pending", SCRIPT_URL?(queue.length?`Отправка · ${queue.length}`:"Синхронизировано"):"Не подключено");
 if(queue.length) flush();
