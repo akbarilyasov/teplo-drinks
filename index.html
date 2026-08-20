@@ -272,6 +272,11 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
 .banner b{display:block;font-size:15.5px;font-weight:640;letter-spacing:-.018em;}
 .banner span{display:block;font-size:13.5px;color:var(--label-2);margin-top:4px;line-height:1.35;letter-spacing:-.006em;}
 .banner[hidden]{display:none;}
+.banner button{
+  margin-top:11px;height:38px;padding:0 16px;border-radius:11px;
+  background:var(--blue);color:#fff;font-size:15px;font-weight:610;letter-spacing:-.016em;
+}
+.banner button:active{filter:brightness(.9);}
 
 .foot{display:flex;gap:10px;margin-top:14px;}
 .foot button{
@@ -316,7 +321,8 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
 
   <div class="banner" id="banner" hidden>
     <b>Отчёт не подключён</b>
-    <span>Продажи сохраняются на устройстве и не теряются. Вставьте ссылку Apps Script в поле SCRIPT_URL — очередь уйдёт целиком одним нажатием.</span>
+    <span>Продажи сохраняются на устройстве и не теряются. Подключите отчёт — очередь уйдёт целиком одним нажатием.</span>
+    <button id="btnConnect">Подключить отчёт</button>
   </div>
 
   <div class="section-title">Последние продажи</div>
@@ -360,7 +366,12 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
 /* ==========================================================
    1. НАСТРОЙКА
    ========================================================== */
-const SCRIPT_URL = ""; // ← сюда вставьте URL веб-приложения Google Apps Script
+/* Ссылку можно НЕ вписывать сюда — см. README.
+   Три источника, по приоритету:
+     1) адрес вида  index.html#url=https://script.google.com/.../exec
+     2) сохранённая ранее ссылка на этом устройстве
+     3) константа ниже (нужна, только если репозиторий приватный)      */
+let SCRIPT_URL = "";
 const BARTENDERS = ["Бармен 1", "Бармен 2"]; // замените на реальные имена
 
 /* ==========================================================
@@ -490,6 +501,30 @@ let bartender = BARTENDERS[0];
 let sales = [];           // {id, ts, bartender, drink, qty, price, sum, pay, void, synced}
 let queue = [];           // ожидают отправки
 let current = null, qty = 1, sending = false, backoff = 0;
+
+/* --- подключение отчёта: hash → память устройства → константа --- */
+function resolveUrl(){
+  let u = "";
+  try{
+    const m = (location.hash||"").match(/url=([^&]+)/);
+    if(m){ u = decodeURIComponent(m[1]); localStorage.setItem("bar_url", u);
+           history.replaceState(null,"",location.pathname+location.search); }
+    if(!u) u = localStorage.getItem("bar_url") || "";
+  }catch(e){}
+  if(u) SCRIPT_URL = u;
+}
+function connectUrl(){
+  const u = prompt("Вставьте ссылку веб-приложения Apps Script (заканчивается на /exec):", SCRIPT_URL||"https://script.google.com/macros/s/.../exec");
+  if(!u) return;
+  const v = u.trim();
+  if(v.indexOf("script.google.com") === -1 || v.slice(-5) !== "/exec"){
+    alert("Ссылка должна быть с script.google.com и заканчиваться на /exec.\n\nЕсли она заканчивается на /dev — это тестовый адрес, он требует входа в аккаунт и работать не будет."); return;
+  }
+  SCRIPT_URL = v;
+  try{ localStorage.setItem("bar_url", v); }catch(e){}
+  $("#banner").hidden = true;
+  toast("Отчёт подключён"); backoff = 0; flush();
+}
 
 /* --- необязательное локальное сохранение (не мешает работе, если недоступно) --- */
 const store = {
@@ -713,7 +748,7 @@ function haptic(strong){ try{ navigator.vibrate && navigator.vibrate(strong?[8,3
 
 $("#btnSync").addEventListener("click",()=>{
   backoff = 0; clearTimeout(retryTimer);
-  if(!SCRIPT_URL){ toast("Отчёт не подключён"); return; }
+  if(!SCRIPT_URL){ connectUrl(); return; }
   toast(queue.length ? `Отправка · ${queue.length}` : "Всё уже в отчёте");
   flush();
 });
@@ -738,7 +773,8 @@ $("#btnReset").addEventListener("click",()=>{
 
 window.addEventListener("beforeunload", e=>{ if(queue.length){ e.preventDefault(); e.returnValue=""; } });
 
-store.load(); renderSeg(); renderMenu(); render();
+resolveUrl(); store.load(); renderSeg(); renderMenu(); render();
+$("#btnConnect").addEventListener("click", connectUrl);
 $("#banner").hidden = !!SCRIPT_URL;
 setStatus(SCRIPT_URL?"":"pending", SCRIPT_URL?(queue.length?`Отправка · ${queue.length}`:"Синхронизировано"):"Не подключено");
 if(queue.length) flush();
