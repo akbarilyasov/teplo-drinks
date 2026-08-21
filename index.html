@@ -60,6 +60,7 @@ body{
   letter-spacing:-.022em;
   -webkit-font-smoothing:antialiased;
   padding-bottom:calc(24px + var(--safe-b));
+  transition:padding-bottom .3s cubic-bezier(.32,.72,0,1);
   overflow-x:hidden;
 }
 button{font-family:inherit;border:none;background:none;color:inherit;cursor:pointer;padding:0;}
@@ -141,6 +142,7 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
   font-size:13px;font-weight:590;color:var(--label-2);
   font-variant-numeric:tabular-nums;margin-top:2px;letter-spacing:-.01em;
 }
+body.has-cart{padding-bottom:calc(96px + var(--safe-b));}
 .item .badge{
   position:absolute;top:9px;right:9px;
   min-width:22px;height:22px;padding:0 6px;border-radius:11px;
@@ -169,6 +171,48 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
 .row.void{opacity:.42;}
 .row.void .t1{text-decoration:line-through;}
 .empty{padding:26px 16px;text-align:center;color:var(--label-2);font-size:14.5px;}
+
+/* ---------- Панель заказа ---------- */
+.cartbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  padding:10px 16px calc(10px + var(--safe-b));
+  background:var(--blur);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  border-top:.5px solid var(--sep);
+  display:flex;gap:10px;align-items:center;
+  transform:translateY(110%);transition:transform .34s cubic-bezier(.32,.72,0,1);
+}
+.cartbar.on{transform:translateY(0);}
+.cartbar[hidden]{display:none;}
+.cb-clear{
+  height:54px;padding:0 16px;border-radius:15px;background:var(--fill);
+  font-size:15px;font-weight:590;color:var(--label-2);letter-spacing:-.016em;flex:none;
+}
+.cb-pay{
+  flex:1;height:54px;border-radius:15px;background:var(--blue);color:#fff;
+  display:flex;align-items:center;justify-content:space-between;padding:0 18px;
+  font-size:16px;font-weight:610;letter-spacing:-.018em;
+  transition:transform .12s cubic-bezier(.32,.72,0,1);
+}
+.cb-pay:active{transform:scale(.975);}
+.cb-pay b{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.024em;}
+
+/* ---------- Строки заказа ---------- */
+.s-title{margin:0 4px 12px;font-size:22px;font-weight:700;letter-spacing:-.026em;
+  font-family:-apple-system,"SF Pro Display",BlinkMacSystemFont,sans-serif;}
+.lines{background:var(--card);border-radius:16px;overflow:hidden;margin-bottom:12px;max-height:44vh;overflow-y:auto;}
+.line{display:flex;align-items:center;gap:11px;padding:9px 12px;border-bottom:.5px solid var(--sep);}
+.line:last-child{border-bottom:none;}
+.line .th{width:30px;height:40px;flex:none;display:flex;align-items:flex-end;justify-content:center;}
+.line .th svg{height:100%;width:auto;}
+.line .info{flex:1;min-width:0;}
+.line .n{font-size:15px;font-weight:590;letter-spacing:-.016em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.line .p{font-size:12.5px;color:var(--label-2);margin-top:1px;font-variant-numeric:tabular-nums;}
+.line .st{display:flex;align-items:center;gap:3px;flex:none;}
+.line .st button{width:34px;height:34px;border-radius:10px;background:var(--fill);
+  font-size:19px;line-height:1;display:flex;align-items:center;justify-content:center;}
+.line .st button:active{background:var(--fill-2);}
+.line .st .q{min-width:26px;text-align:center;font-size:17px;font-weight:640;font-variant-numeric:tabular-nums;}
 
 /* ---------- Нижний лист ---------- */
 .scrim{
@@ -365,25 +409,17 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
   </div>
 </div>
 
+<div class="cartbar" id="cartbar" hidden>
+  <button class="cb-clear" id="cartClear">Сброс</button>
+  <button class="cb-pay" id="cartPay"><span id="cbCount">0 позиций</span><b id="cbSum">0</b></button>
+</div>
+
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true">
   <div class="grabber"></div>
-  <div class="head">
-    <div class="art" id="shArt"></div>
-    <div>
-      <h2 id="shName">—</h2>
-      <p id="shPrice">—</p>
-    </div>
-  </div>
-  <div class="stepper">
-    <div class="lbl">Количество</div>
-    <div class="ctl">
-      <button id="minus" aria-label="Минус">−</button>
-      <div class="qty" id="qty">1</div>
-      <button id="plus" aria-label="Плюс">+</button>
-    </div>
-  </div>
-  <div class="total-line"><span>К оплате</span><b id="shTotal">0</b></div>
+  <h2 class="s-title">Заказ</h2>
+  <div class="lines" id="lines"></div>
+  <div class="total-line"><span>Итого</span><b id="shTotal">0</b></div>
   <div class="pay-seg" id="paySeg">
     <button data-pay="Наличные" aria-pressed="false">
       <span class="mark"><svg viewBox="0 0 12 12"><path d="M1.5 6.4 L4.4 9.2 L10.5 2.8" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -395,7 +431,7 @@ button{font-family:inherit;border:none;background:none;color:inherit;cursor:poin
     </button>
   </div>
   <button class="confirm" id="confirm" disabled>Выберите способ оплаты</button>
-  <button class="cancel" id="closeSheet">Отмена</button>
+  <button class="cancel" id="closeSheet">Назад</button>
 </div>
 
 <div class="done" id="done">
@@ -546,9 +582,10 @@ function art(d, w){
    4. Состояние
    ========================================================== */
 const fmt = n => n.toLocaleString("ru-RU").replace(/\u00A0/g," ");
-let sales = [];           // {id, ts, drink, qty, price, sum, pay, void, synced}
+let orders = [];          // {id, date, time, pay, lines[], sum, void, unconfirmed}
+let cart = [];            // {id, name, price, qty}
 let queue = [];           // ожидают отправки
-let current = null, qty = 1, payMode = null, sending = false, backoff = 0, unconfirmedSeen = false;
+let payMode = null, sending = false, backoff = 0, unconfirmedSeen = false;
 
 /* --- подключение отчёта: hash → память устройства → константа --- */
 function resolveUrl(){
@@ -583,17 +620,47 @@ function connectUrl(){
 
 /* --- необязательное локальное сохранение (не мешает работе, если недоступно) --- */
 const store = {
-  save(){ try{ localStorage.setItem("bar_v1", JSON.stringify({sales,queue})); }catch(e){} },
-  load(){ try{ const d=JSON.parse(localStorage.getItem("bar_v1")||"null");
-    if(d){ sales=d.sales||[]; queue=d.queue||[]; } }catch(e){} }
+  save(){ try{ localStorage.setItem("bar_v2", JSON.stringify({orders,queue,cart})); }catch(e){} },
+  load(){ try{ const d=JSON.parse(localStorage.getItem("bar_v2")||"null");
+    if(d){ orders=d.orders||[]; queue=d.queue||[]; cart=d.cart||[]; } }catch(e){} }
 };
 
 /* ==========================================================
-   5. Рендер
+   5. Корзина
    ========================================================== */
 const $ = s => document.querySelector(s);
 const grid = $("#grid");
 
+function cartQty(id){ const l = cart.find(x=>x.id===id); return l ? l.qty : 0; }
+function cartSum(){ return cart.reduce((a,l)=>a+l.price*l.qty,0); }
+function cartCount(){ return cart.reduce((a,l)=>a+l.qty,0); }
+
+function addToCart(id){
+  const d = MENU.find(x=>x.id===id);
+  const l = cart.find(x=>x.id===id);
+  if(l) l.qty++; else cart.push({id, name:d.name, price:d.price, qty:1});
+  renderCart(); haptic();
+}
+function setQty(id, n){
+  const i = cart.findIndex(x=>x.id===id);
+  if(i<0) return;
+  if(n<=0) cart.splice(i,1); else cart[i].qty = n;
+  renderCart();
+  if(!cart.length) closeSheet();
+  haptic();
+}
+function clearCart(){ cart = []; renderCart(); closeSheet(); }
+
+function plural(n){
+  const a = n%10, b = n%100;
+  if(a===1 && b!==11) return "позиция";
+  if(a>=2 && a<=4 && (b<12 || b>14)) return "позиции";
+  return "позиций";
+}
+
+/* ==========================================================
+   6. Рендер
+   ========================================================== */
 function renderMenu(){
   grid.innerHTML = MENU.map(d=>`
     <button class="item" data-id="${d.id}">
@@ -602,86 +669,129 @@ function renderMenu(){
       <div class="nm">${d.name}</div>
       <div class="pr">${fmt(d.price)} сум</div>
     </button>`).join("");
-  grid.querySelectorAll(".item").forEach(el=>{
-    el.addEventListener("click",()=>openSheet(el.dataset.id));
-  });
+  grid.querySelectorAll(".item").forEach(el=>
+    el.addEventListener("click",()=>addToCart(el.dataset.id)));
 }
 
+function renderCart(){
+  const n = cartCount(), sum = cartSum();
+  const bar = $("#cartbar");
+  bar.hidden = !n;
+  requestAnimationFrame(()=>bar.classList.toggle("on", !!n));
+  document.body.classList.toggle("has-cart", !!n);
+  $("#cbCount").textContent = `${n} ${plural(n)}`;
+  $("#cbSum").textContent = fmt(sum);
 
+  MENU.forEach(d=>{
+    const q = cartQty(d.id);
+    const b = document.getElementById("bg-"+d.id);
+    if(b){ b.textContent = q; b.classList.toggle("on", q>0); }
+  });
+
+  $("#lines").innerHTML = cart.map(l=>{
+    const d = MENU.find(x=>x.id===l.id);
+    return `<div class="line">
+      <div class="th">${art(d)}</div>
+      <div class="info">
+        <div class="n">${l.name}</div>
+        <div class="p">${fmt(l.price)} × ${l.qty} = ${fmt(l.price*l.qty)}</div>
+      </div>
+      <div class="st">
+        <button data-m="${l.id}">−</button>
+        <div class="q">${l.qty}</div>
+        <button data-p="${l.id}">+</button>
+      </div>
+    </div>`;
+  }).join("");
+  $("#lines").querySelectorAll("[data-m]").forEach(b=>
+    b.addEventListener("click",()=>setQty(b.dataset.m, cartQty(b.dataset.m)-1)));
+  $("#lines").querySelectorAll("[data-p]").forEach(b=>
+    b.addEventListener("click",()=>setQty(b.dataset.p, cartQty(b.dataset.p)+1)));
+
+  $("#shTotal").textContent = fmt(sum);
+  const c = $("#confirm");
+  c.disabled = !payMode || !n;
+  c.textContent = payMode ? `Оплатить · ${fmt(sum)}` : "Выберите способ оплаты";
+  store.save();
+}
 
 function renderTotals(){
-  const live = sales.filter(s=>!s.void);
-  const rev = live.reduce((a,s)=>a+s.sum,0);
-  const q   = live.reduce((a,s)=>a+s.qty,0);
-  const cash= live.filter(s=>s.pay==="Наличные").reduce((a,s)=>a+s.sum,0);
-  const card= live.filter(s=>s.pay==="Карта").reduce((a,s)=>a+s.sum,0);
+  const live = orders.filter(o=>!o.void);
+  const rev = live.reduce((a,o)=>a+o.sum,0);
+  const q   = live.reduce((a,o)=>a+o.lines.reduce((x,l)=>x+l.qty,0),0);
+  const cash= live.filter(o=>o.pay==="Наличные").reduce((a,o)=>a+o.sum,0);
+  const card= live.filter(o=>o.pay==="Карта").reduce((a,o)=>a+o.sum,0);
   $("#tRev").innerHTML  = fmt(rev)+"<small> сум</small>";
   $("#tQty").innerHTML  = fmt(q)+"<small> шт</small>";
   $("#tCash").innerHTML = fmt(cash)+"<small> сум</small>";
   $("#tCard").innerHTML = fmt(card)+"<small> сум</small>";
-  MENU.forEach(d=>{
-    const n = live.filter(s=>s.drink===d.name).reduce((a,s)=>a+s.qty,0);
-    const b = document.getElementById("bg-"+d.id);
-    if(b){ b.textContent=n; b.classList.toggle("on", n>0); }
-  });
+}
+
+function orderTitle(o){
+  const first = o.lines[0];
+  const more  = o.lines.length - 1;
+  return more > 0
+    ? `${first.name} и ещё ${more}`
+    : `${first.name} × ${first.qty}`;
 }
 
 function renderList(){
   const l = $("#list");
-  if(!sales.length){ l.innerHTML='<div class="empty">Продаж пока нет</div>'; return; }
-  l.innerHTML = sales.slice(0,8).map(s=>`
-    <div class="row ${s.void?"void":""}">
-      <span class="pay ${s.pay==="Наличные"?"cash":"card"}"></span>
+  if(!orders.length){ l.innerHTML='<div class="empty">Продаж пока нет</div>'; return; }
+  l.innerHTML = orders.slice(0,8).map(o=>{
+    const pending = queue.some(x=>x.order===o.id);
+    const state = pending ? " · ожидает" : (o.unconfirmed ? " · без подтверждения" : "");
+    return `<div class="row ${o.void?"void":""}">
+      <span class="pay ${o.pay==="Наличные"?"cash":"card"}"></span>
       <div class="txt">
-        <div class="t1">${s.drink} × ${s.qty}</div>
-        <div class="t2">${s.time} · ${s.pay}${s.synced?(s.unconfirmed?" · без подтверждения":""):" · ожидает"}</div>
+        <div class="t1">${orderTitle(o)}</div>
+        <div class="t2">${o.time} · ${o.pay}${state}</div>
       </div>
-      <div class="sum">${fmt(s.sum)}</div>
-      ${s.void?"":`<button class="undo" data-void="${s.id}">Отменить</button>`}
-    </div>`).join("");
-  l.querySelectorAll("[data-void]").forEach(b=>b.addEventListener("click",()=>voidSale(b.dataset.void)));
+      <div class="sum">${fmt(o.sum)}</div>
+      ${o.void?"":`<button class="undo" data-void="${o.id}">Отменить</button>`}
+    </div>`;
+  }).join("");
+  l.querySelectorAll("[data-void]").forEach(b=>
+    b.addEventListener("click",()=>voidOrder(b.dataset.void)));
 }
 
 function render(){ renderTotals(); renderList(); store.save(); }
 
 /* ==========================================================
-   6. Нижний лист
+   7. Оплата заказа
    ========================================================== */
-function openSheet(id){
-  current = MENU.find(d=>d.id===id); qty = 1; payMode = null;
+function openSheet(){
+  if(!cart.length) return;
+  payMode = null;
   document.querySelectorAll("#paySeg button").forEach(b=>b.setAttribute("aria-pressed","false"));
-  $("#shArt").innerHTML = art(current);
-  $("#shName").textContent = current.name;
-  $("#shPrice").textContent = fmt(current.price)+" сум за порцию";
-  updSheet();
+  renderCart();
   $("#scrim").classList.add("on"); $("#sheet").classList.add("on");
   haptic();
 }
 function closeSheet(){ $("#scrim").classList.remove("on"); $("#sheet").classList.remove("on"); }
-function updSheet(){
-  $("#qty").textContent = qty;
-  $("#shTotal").textContent = fmt(current.price*qty);
-  const c = $("#confirm");
-  c.disabled = !payMode;
-  c.textContent = payMode ? `Оплатить · ${fmt(current.price*qty)}` : "Выберите способ оплаты";
-}
 
-$("#plus").addEventListener("click",()=>{ if(qty<50){qty++;updSheet();haptic();} });
-$("#minus").addEventListener("click",()=>{ if(qty>1){qty--;updSheet();haptic();} });
-$("#closeSheet").addEventListener("click",closeSheet);
-$("#scrim").addEventListener("click",closeSheet);
+$("#cartPay").addEventListener("click", openSheet);
+$("#cartClear").addEventListener("click",()=>{
+  if(cart.length > 1 && !confirm("Сбросить заказ целиком?")) return;
+  clearCart(); haptic();
+});
+$("#closeSheet").addEventListener("click", closeSheet);
+$("#scrim").addEventListener("click", closeSheet);
 document.querySelectorAll("#paySeg button").forEach(b=>{
   b.addEventListener("click",()=>{
     payMode = b.dataset.pay;
     document.querySelectorAll("#paySeg button").forEach(x=>x.setAttribute("aria-pressed", String(x===b)));
-    updSheet(); haptic();
+    renderCart(); haptic();
   });
 });
-$("#confirm").addEventListener("click",()=>{ if(payMode) commit(payMode); });
+$("#confirm").addEventListener("click",()=>{ if(payMode && cart.length) commit(payMode); });
 
-function showDone(s){
-  $("#dSum").textContent = fmt(s.sum) + " сум";
-  $("#dSub").textContent = `${s.drink} × ${s.qty} · ${s.pay}`;
+function showDone(o){
+  $("#dSum").textContent = fmt(o.sum) + " сум";
+  const n = o.lines.reduce((a,l)=>a+l.qty,0);
+  $("#dSub").textContent = o.lines.length > 1
+    ? `${n} ${plural(n)} · ${o.pay}`
+    : `${o.lines[0].name} × ${o.lines[0].qty} · ${o.pay}`;
   $("#dNote").hidden = true;
   const el = $("#done");
   el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
@@ -690,9 +800,6 @@ function showDone(s){
   el.onclick = ()=>{ clearTimeout(el._h); el.classList.remove("on"); };
 }
 
-/* ==========================================================
-   7. Продажа / отмена
-   ========================================================== */
 function nowParts(){
   const d = new Date();
   const p = n => String(n).padStart(2,"0");
@@ -704,29 +811,34 @@ function nowParts(){
 }
 
 function commit(pay){
-  if(!current) return;
   const t = nowParts();
-  const s = {
-    id: t.iso.replace(/\D/g,"")+"-"+Math.random().toString(36).slice(2,7),
-    date:t.date, time:t.time, iso:t.iso,
-    drink:current.name, qty,
-    price:current.price, sum:current.price*qty,
-    pay, type:"Продажа", void:false, synced:false
+  const oid = t.iso.replace(/\D/g,"")+"-"+Math.random().toString(36).slice(2,6);
+  const o = {
+    id: oid, date:t.date, time:t.time, iso:t.iso, pay,
+    lines: cart.map(l=>({id:l.id, name:l.name, price:l.price, qty:l.qty, sum:l.price*l.qty})),
+    sum: cartSum(), void:false, unconfirmed:false
   };
-  sales.unshift(s); queue.push(s);
-  closeSheet(); showDone(s); render(); flush();
+  orders.unshift(o);
+  o.lines.forEach((l,i)=>queue.push({
+    id:`${oid}-${i}`, order:oid, date:t.date, time:t.time, iso:t.iso,
+    drink:l.name, qty:l.qty, price:l.price, sum:l.sum, pay, type:"Продажа"
+  }));
+  cart = [];
+  closeSheet(); renderCart(); showDone(o); render(); flush();
   haptic(true);
 }
 
-function voidSale(id){
-  const s = sales.find(x=>x.id===id);
-  if(!s || s.void) return;
-  if(!confirm(`Отменить: ${s.drink} × ${s.qty} на ${fmt(s.sum)} сум?`)) return;
-  s.void = true;
+function voidOrder(id){
+  const o = orders.find(x=>x.id===id);
+  if(!o || o.void) return;
+  if(!confirm(`Отменить заказ на ${fmt(o.sum)} сум?`)) return;
+  o.void = true;
   const t = nowParts();
-  queue.push({...s, id:s.id+"-void", date:t.date, time:t.time, iso:t.iso,
-              qty:-s.qty, sum:-s.sum, type:"Отмена", synced:false});
-  render(); flush(); toast("Продажа отменена");
+  o.lines.forEach((l,i)=>queue.push({
+    id:`${o.id}-${i}-void`, order:o.id, date:t.date, time:t.time, iso:t.iso,
+    drink:l.name, qty:-l.qty, price:l.price, sum:-l.sum, pay:o.pay, type:"Отмена"
+  }));
+  render(); flush(); toast("Заказ отменён");
 }
 
 /* ==========================================================
@@ -818,9 +930,11 @@ async function flush(){
       if(res === "failed"){ scheduleRetry(); setStatus("off", `Повтор · ${queue.length}`); break; }
       backoff = 0;
       queue.shift();
-      const s = sales.find(x=>x.id===item.id);
-      if(s){ s.synced = true; s.unconfirmed = (res === "unconfirmed"); }
-      if(res === "unconfirmed") unconfirmedSeen = true;
+      if(res === "unconfirmed"){
+        const o = orders.find(x=>x.id===item.order);
+        if(o) o.unconfirmed = true;
+        unconfirmedSeen = true;
+      }
       render();
     }
     if(!queue.length){ backoff = 0; setStatus("", unconfirmedSeen ? "Без подтверждения" : "Синхронизировано"); }
@@ -849,27 +963,28 @@ $("#btnSync").addEventListener("click",()=>{
   flush();
 });
 $("#btnReset").addEventListener("click",()=>{
-  const live = sales.filter(s=>!s.void);
-  const rev  = live.reduce((a,s)=>a+s.sum,0);
-  const cash = live.filter(s=>s.pay==="Наличные").reduce((a,s)=>a+s.sum,0);
-  const card = live.filter(s=>s.pay==="Карта").reduce((a,s)=>a+s.sum,0);
-  const q    = live.reduce((a,s)=>a+s.qty,0);
+  const live = orders.filter(o=>!o.void);
+  const rev  = live.reduce((a,o)=>a+o.sum,0);
+  const cash = live.filter(o=>o.pay==="Наличные").reduce((a,o)=>a+o.sum,0);
+  const card = live.filter(o=>o.pay==="Карта").reduce((a,o)=>a+o.sum,0);
+  const q    = live.reduce((a,o)=>a+o.lines.reduce((x,l)=>x+l.qty,0),0);
   if(queue.length && !confirm(`${queue.length} записей ещё не в отчёте. Всё равно закрыть смену?`)) return;
   if(!confirm(
     `Итог смены\n\n`+
     `Выручка: ${fmt(rev)} сум\n`+
     `Наличные: ${fmt(cash)} сум\n`+
     `Карта: ${fmt(card)} сум\n`+
+    `Чеков: ${live.length}\n`+
     `Продано: ${fmt(q)} шт\n\n`+
     `Экран очистится. Данные в отчёте останутся.`)) return;
-  sales=[]; queue=[]; backoff=0; clearTimeout(retryTimer);
-  render(); setStatus(SCRIPT_URL?"":"pending", SCRIPT_URL?"Синхронизировано":"Не подключено");
+  orders=[]; queue=[]; cart=[]; backoff=0; clearTimeout(retryTimer);
+  renderCart(); render(); setStatus(SCRIPT_URL?"":"pending", SCRIPT_URL?"Синхронизировано":"Не подключено");
   toast("Смена закрыта");
 });
 
 window.addEventListener("beforeunload", e=>{ if(queue.length){ e.preventDefault(); e.returnValue=""; } });
 
-resolveUrl(); store.load(); renderMenu(); render();
+resolveUrl(); store.load(); renderMenu(); renderCart(); render();
 $("#btnConnect").addEventListener("click", connectUrl);
 $("#status").addEventListener("click", async ()=>{
   if(!SCRIPT_URL){ connectUrl(); return; }
